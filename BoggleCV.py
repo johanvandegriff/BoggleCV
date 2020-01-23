@@ -31,7 +31,13 @@ def four_point_transform(image, pts, size):
     nbr = [w, h]
     nbl = [0, h]
     location = np.float32(pts)
-    newLocation = np.float32([nbl, nbr, ntr, ntl])
+    x0 = pts[0][0]
+    x2 = pts[2][0]
+    #make sure the board ends up rotated the correct way
+    if x0 < x2:
+        newLocation = np.float32([ntl, nbl, nbr, ntr])
+    else:
+        newLocation = np.float32([ntr, ntl, nbl, nbr])
     M = cv2.getPerspectiveTransform(location, newLocation)
     unwarpedImage = cv2.warpPerspective(image, M, (w, h))
     return unwarpedImage
