@@ -12,6 +12,7 @@ CONTOUR_THICKNESS = 2
 MAX_DISP_DIM = 500
 
 VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/edited/speedup.mp4"
+#VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/BoggleClip009.mp4"
 VIDEO_OUT_DIR = "../Boggle-Videos/Boggle5x5/"
 VIDEO_ENCODER = "H264"
 VIDEO_FPS = 30
@@ -43,9 +44,11 @@ def four_point_transform(image, pts, size):
     return warpedimage
 
 def resizeWithAspectRatio(image, maxDispDim, inter=cv2.INTER_AREA):
-    w, h, _ = image.shape
+    w = image.shape[0] #TODO width and height are swapped here
+    h = image.shape[1]
+
     ar = w / h
-    print(ar)
+    #print(ar)
     if w > h:
         nw = maxDispDim
         nh = int(maxDispDim / ar)
@@ -330,7 +333,7 @@ def smooth(x, window_len=11, window=np.hanning):
 
 def findRowsOrCols(img, doCols, smoothFactor, ax):
     smoothFactor = int(smoothFactor * img.shape[0])
-    print("smoothFactor", smoothFactor)
+    #print("smoothFactor", smoothFactor)
     
     if doCols:
         title = "colSum"
@@ -351,7 +354,7 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
     #threshold=(None,None), 
     #, plateau_size=(None,None)
     
-    print(props)
+    #print(props)
 
     prs = props["prominences"]
     if len(prs) < 6:
@@ -360,9 +363,9 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
         #raise BoggleError("less than 6 dips")
     else:
         prsIdx = sorted(range(len(prs)), key=lambda i: prs[i], reverse=True)
-        print(prsIdx)
+        #print(prsIdx)
         prsIdx = prsIdx[:6]
-        print(prsIdx)
+        #print(prsIdx)
         top_6_dips = [p for i,p in enumerate(dips) if i in prsIdx]
 
     #fig = plt.figure()
@@ -392,7 +395,7 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
         ax.legend(loc='best')
         
     #return top_6_dips
-    print("before clip", top_6_dips)
+    #print("before clip", top_6_dips)
     top_6_dips_scaled = [np.clip(0, p-smoothFactor, len(imgSum)-1) for p in top_6_dips]
     return top_6_dips_scaled
 
@@ -408,7 +411,8 @@ def plotToImg():
     img_data_ndarray = cv2.imdecode(file_bytes, cv2.IMREAD_UNCHANGED)
     #img_data_cvmat = cv.fromarray(img_data_ndarray) #  convert to old cvmat if needed
 
-    return img_data_ndarray
+    img_rgb = cv2.cvtColor(img_data_ndarray, cv2.COLOR_RGBA2RGB)
+    return img_rgb
 
 
 def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")):
@@ -421,7 +425,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     maskThresholdMin = (108, 28, 6)
     maskThresholdMax = (144, 255, 241)
     size = max(image.shape)
-    print("size", size)
+    #print("size", size)
     blurAmount = int(.02 * size)
     blurAmount = (blurAmount, blurAmount)
     # blurThreshold = 80
@@ -466,7 +470,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     diffs = diffAbs(anglesAvg)
     
     avgDiff = np.mean(diffs)
-    print(avgDiff)
+    #print(avgDiff)
     
     binDiffs = [int(i > avgDiff) for i in diffs]
     binDiffs = debounce(binDiffs, int(len(binDiffs) * debounceFactor))
@@ -505,7 +509,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     segments = invertGaps(gaps)
     sidePoints = findSidePoints(segments, bestCtr, step)
     sidePoints = [getEndVals(sp, endFraction) for sp in sidePoints]
-    print("sidepoints len", len(sidePoints[0]))
+    #print("sidepoints len", len(sidePoints[0]))
     
     
     lines = fitSidePointsToLines(sidePoints)
@@ -538,9 +542,9 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
         ax0 = ax1 = None
     
     rowSumLines = findRowsOrCols(warpgray, False, smoothFactor, ax0)
-    print("rows", rowSumLines)
+    #print("rows", rowSumLines)
     colSumLines = findRowsOrCols(warpgray, True, smoothFactor, ax1)
-    print("cols", colSumLines)
+    #print("cols", colSumLines)
     
     
     if "imgSumPlotImg" in generate:
@@ -581,8 +585,8 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     if newRSL5 < rowSumLines[5]:
         rowSumLines[5] = newRSL5
 
-    print("rows2", rowSumLines)
-    print("cols2", colSumLines)
+    #print("rows2", rowSumLines)
+    #print("cols2", colSumLines)
 
     #just display
     if "diceRaw" in generate:
@@ -693,15 +697,12 @@ def processVideo():
     height, width, _ = frame.shape
     resolution = (width, height)
     print("frame size: ", width, "x", height)
-    #maskVidout = cv2.VideoWriter(VIDEO_OUT_DIR + maskVidName, cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, resolution)
     
-    CLIP_OUT = VIDEO_OUT_DIR + "out1.mp4"
-    boggleVidout = cv2.VideoWriter(CLIP_OUT, cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, (300, 300))
+    #generate = ("warpedimage", "debugimage", "debugmask")
+    generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
     
-    #augmentedClipout = cv2.VideoWriter(VIDEO_OUT_DIR + augmentedClip, cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, resolution)
-    
+    videoOuts = {}
     errors = {}
-    
     frameNum = 1
     while (vid.isOpened()):
         # Capture frame-by-frame
@@ -712,12 +713,21 @@ def processVideo():
             # Display the resulting frame
             # cv2.imshow('Frame', frame)
             try:
-                imgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True)
-                imshow_fit("warpedimage", imgs["warpedimage"])
-                boggleVidout.write(imgs["warpedimage"])
+                imgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True, generate=generate)
+                for title, img in imgs.items():
+                    imshow_fit(title, img)
+                    #print(title, img.shape)
+                    if not title in videoOuts:
+                        filename = VIDEO_OUT_DIR + title + ".mp4"
+                        h = img.shape[0]
+                        w = img.shape[1]
+                        videoOuts[title] = cv2.VideoWriter(filename,fourcc cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, (w, h))
+                    videoOuts[title].write(img)
             except Exception as e:
                 print("DROP FRAME #", frameNum)
-                error = str(e)
+                #error = str(e)
+                error = traceback.format_exc()
+                print(error)
                 errors[frameNum] = error
             # Press Q on keyboard to  exit
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -729,12 +739,12 @@ def processVideo():
         frameNum += 1
 
     # When everything done, release the video capture object
-
+    print("VIDEO DONE")
     vid.release()
 
     # Closes all the frames
     cv2.destroyAllWindows()
-    json.dump(errors, open(CLIP_OUT+'.json', 'w'), indent=2)
+    json.dump(errors, open(VIDEO_INPUT+'.json', 'w'), indent=2)
 
 
 def processImages():
@@ -762,4 +772,4 @@ def processImages():
 
 
 if __name__ == "__main__":
-    processImages()
+    processVideo()
