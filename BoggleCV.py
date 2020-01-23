@@ -1,4 +1,4 @@
-import cv2, math, os, json, traceback
+import cv2, math, os, json, traceback, io
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
@@ -385,28 +385,19 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
     return top_6_dips_scaled
 
 def plotToImg():
-    tmp_file = "plot-tmpfile.png"
-    plt.savefig(tmp_file, bbox_inches='tight')
+    #https://stackoverflow.com/questions/5314707/matplotlib-store-image-in-variable
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
     plt.close()
-    return cv2.imread(tmp_file)
+    buf.seek(0)
+    
+    #https://stackoverflow.com/questions/11552926/how-to-read-raw-png-from-an-array-in-python-opencv
+    file_bytes = np.asarray(bytearray(buf.read()), dtype=np.uint8)
+    img_data_ndarray = cv2.imdecode(file_bytes, cv2.IMREAD_UNCHANGED)
+    #img_data_cvmat = cv.fromarray(img_data_ndarray) #  convert to old cvmat if needed
 
-'''
-#TODO https://stackoverflow.com/questions/5314707/matplotlib-store-image-in-variable
-import matplotlib.pyplot as plt
-import io
-import urllib, base64
+    return img_data_ndarray
 
-plt.plot(range(10))
-fig = plt.gcf()
-
-buf = io.BytesIO()
-fig.savefig(buf, format='png')
-buf.seek(0)
-string = base64.b64encode(buf.read())
-
-uri = 'data:image/png;base64,' + urllib.parse.quote(string)
-html = '<img src = "%s"/>' % uri
-'''
 
 def findBoggleBoard(image, normalPlots=True, harshErrors=False):
     resultImages = {}
@@ -650,8 +641,8 @@ def findAndShowBoggleBoard(imgDir, imgFilename):
     try:
         print(imgPath)
         image = cv2.imread(imgPath)
-        imgs = findBoggleBoard(image, normalPlots=True, harshErrors=False)
-        #imgs = findBoggleBoard(imgPath, normalPlots=False, harshErrors=True)
+        #imgs = findBoggleBoard(image, normalPlots=True, harshErrors=False)
+        imgs = findBoggleBoard(image, normalPlots=False, harshErrors=True)
         for title, img in imgs.items():
             #print("title, img:", title, img)
             #cv2.imshow(title, img)
@@ -742,4 +733,4 @@ def processImages():
 
 
 if __name__ == "__main__":
-    processVideo()
+    processImages()
