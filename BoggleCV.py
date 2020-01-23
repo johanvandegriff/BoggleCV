@@ -39,8 +39,8 @@ def four_point_transform(image, pts, size):
     else:
         newLocation = np.float32([ntr, ntl, nbl, nbr])
     M = cv2.getPerspectiveTransform(location, newLocation)
-    unwarpedImage = cv2.warpPerspective(image, M, (w, h))
-    return unwarpedImage
+    warpedimage = cv2.warpPerspective(image, M, (w, h))
+    return warpedimage
 
 def resizeWithAspectRatio(image, maxDispDim, inter=cv2.INTER_AREA):
     w, h, _ = image.shape
@@ -303,7 +303,12 @@ def waitForKey():
     cv2.destroyAllWindows()
     plt.close('all')
 
-
+def waitForConsoleEnter():
+    print("=== hit enter to continue ===")
+    input()
+    print("=== continuing ===")
+    cv2.destroyAllWindows()
+    plt.close('all')
 
 #https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
 #window: np.ones (flat), np.hanning, np.hamming, np.bartlett, np.blackman
@@ -363,27 +368,28 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
     #fig = plt.figure()
     #ax1 = fig.add_subplot(111)
     
-    q = [i for i in range(len(imgSumSmooth))]
-    
-    ax.plot(q, imgSumSmooth, 'b-', linewidth=2, label="smooth")
-    ax.plot(np.linspace(smoothFactor,len(imgSumSmooth)-smoothFactor, len(imgSum)), imgSum, 'r-', linewidth=1, label=title)
+    if ax is not None:
+        q = [i for i in range(len(imgSumSmooth))]
+        
+        ax.plot(q, imgSumSmooth, 'b-', linewidth=2, label="smooth")
+        ax.plot(np.linspace(smoothFactor,len(imgSumSmooth)-smoothFactor, len(imgSum)), imgSum, 'r-', linewidth=1, label=title)
 
-    #ax.plot(
-        #[q[p] for p in peaks_positive],
-        #[imgSumSmooth[p] for p in peaks_positive],
-        #'ro', label = 'positive peaks')
-    
-    ax.plot(
-        [q[p] for p in dips],
-        [imgSumSmooth[p] for p in dips],
-        'go', label='dips')
-    
-    ax.plot(
-        [q[p] for p in top_6_dips],
-        [imgSumSmooth[p] for p in top_6_dips],
-        'c.', label='top 6 dips')
-    
-    ax.legend(loc='best')
+        #ax.plot(
+            #[q[p] for p in peaks_positive],
+            #[imgSumSmooth[p] for p in peaks_positive],
+            #'ro', label = 'positive peaks')
+        
+        ax.plot(
+            [q[p] for p in dips],
+            [imgSumSmooth[p] for p in dips],
+            'go', label='dips')
+        
+        ax.plot(
+            [q[p] for p in top_6_dips],
+            [imgSumSmooth[p] for p in top_6_dips],
+            'c.', label='top 6 dips')
+        
+        ax.legend(loc='best')
         
     #return top_6_dips
     print("before clip", top_6_dips)
@@ -405,10 +411,8 @@ def plotToImg():
     return img_data_ndarray
 
 
-def findBoggleBoard(image, normalPlots=True, harshErrors=False):
+def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")):
     resultImages = {}
-    
-    debugimage = image.copy()
 
     # maskThresholdMin = (108, 28, 12)
     # maskThresholdMax = (125, 255, 241)
@@ -435,10 +439,20 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False):
     maskblur = cv2.inRange(maskblur, (blurThreshold,), (255,))
     contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
     # print(hierarchy) #TODO
-    debugmask = cv2.cvtColor(maskblur, cv2.COLOR_GRAY2BGR)
     
     bestCtr = findBestCtr(contours)
     # bestCtr = cv2.convexHull(bestCtr)
+
+    #draw the contours for debugging
+    if "debugimage" in generate:
+        debugimage = image.copy()
+        cv2.drawContours(debugimage, contours, -1, RED, CONTOUR_THICKNESS)
+        cv2.drawContours(debugimage, [bestCtr], -1, BLUE, CONTOUR_THICKNESS)
+    if "debugmask" in generate:
+        debugmask = cv2.cvtColor(maskblur, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(debugmask, contours, -1, RED, CONTOUR_THICKNESS)
+        cv2.drawContours(debugmask, [bestCtr], -1, BLUE, CONTOUR_THICKNESS)
+    
 
     step = 10
     avgWindow = 0.1
@@ -465,27 +479,24 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False):
         q = max(gapsEndY)
         if q > 6: gapsEndY2 = [i * 6 / q for i in gapsEndY]
 
-    contourPlotImg = contourPlot(xs, xs2, angles, anglesAvg, diffs, diffs2, gapsStart, gapsStartY, gapsEnd, gapsEndY2, normalPlots)
-
-    if contourPlotImg is not None:
-        resultImages["contourPlotImg"] = contourPlotImg
-    
-    #draw the contours for debugging
-    for img in debugmask, debugimage:
-        cv2.drawContours(img, contours, -1, RED, CONTOUR_THICKNESS)
-        cv2.drawContours(img, [bestCtr], -1, BLUE, CONTOUR_THICKNESS)
+    if "contourPlotImg" in generate:
+        contourPlotImg = contourPlot(xs, xs2, angles, anglesAvg, diffs, diffs2, gapsStart, gapsStartY, gapsEnd, gapsEndY2, normalPlots)
+        if contourPlotImg is not None:
+            resultImages["contourPlotImg"] = contourPlotImg
     
     if len(gaps) < 4:
         print("!!!! less than 4 gaps")
         if harshErrors:
             raise BoggleError("less than 4 gaps")
-        contourPlotImg = contourPlot(xs, xs2, angles, anglesAvg, diffs, diffs2, gapsStart, gapsStartY, gapsEnd, None, normalPlots)
-
-        if contourPlotImg is not None:
-            resultImages["contourPlotImg"] = contourPlotImg
+        if "contourPlotImg" in generate:
+            contourPlotImg = contourPlot(xs, xs2, angles, anglesAvg, diffs, diffs2, gapsStart, gapsStartY, gapsEnd, None, normalPlots)
+            if contourPlotImg is not None:
+                resultImages["contourPlotImg"] = contourPlotImg
         
-        resultImages["debugmask"] = debugmask
-        resultImages["debugimage"] = debugimage
+        if "debugmask" in generate:
+            resultImages["debugmask"] = debugmask
+        if "debugimage" in generate:
+            resultImages["debugimage"] = debugimage
         return resultImages
     
     endFraction = 0.01
@@ -496,41 +507,47 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False):
     sidePoints = [getEndVals(sp, endFraction) for sp in sidePoints]
     print("sidepoints len", len(sidePoints[0]))
     
-    for img in debugmask, debugimage:
-        cv2.drawContours(img, sidePoints, -1, YELLOW, CONTOUR_THICKNESS)
     
     lines = fitSidePointsToLines(sidePoints)
     points = findCorners(lines)
-    drawLinesAndPoints(debugimage, lines, points)
-    drawLinesAndPoints(debugmask, lines, points)
+    if "debugimage" in generate:
+        cv2.drawContours(debugimage, sidePoints, -1, YELLOW, CONTOUR_THICKNESS)
+        drawLinesAndPoints(debugimage, lines, points)
+        resultImages["debugimage"] = debugimage
+    if "debugmask" in generate:
+        cv2.drawContours(debugmask, sidePoints, -1, YELLOW, CONTOUR_THICKNESS)
+        drawLinesAndPoints(debugmask, lines, points)
+        resultImages["debugmask"] = debugmask
 
     npPoints = np.array(points)
     size = 300
-    warpedImage = four_point_transform(image, npPoints, size)
-        
-    warpgray = cv2.cvtColor(warpedImage, cv2.COLOR_BGR2GRAY)
+    warpedimage = four_point_transform(image, npPoints, size)
+    warpgray = cv2.cvtColor(warpedimage, cv2.COLOR_BGR2GRAY)
     
-    resultImages["debugmask"] = debugmask
-    resultImages["debugimage"] = debugimage
-    #resultImages["warpgray"] = warpgray
-    resultImages["warpedImage"] = warpedImage
+    if "warpedimage" in generate:
+        resultImages["warpedimage"] = warpedimage
+    
+    if "warpgray" in generate:
+        resultImages["warpgray"] = warpgray
     
     smoothFactor = .05
     
-    #fig= plt.figure(figsize=(6,3))
-    fig, axs = plt.subplots(2, figsize=(8,10))
-    #fig.suptitle('imgSum')
+    if "imgSumPlotImg" in generate:
+        fig, (ax0, ax1) = plt.subplots(2, figsize=(8,10))
+    else:
+        ax0 = ax1 = None
     
-    rowSumLines = findRowsOrCols(warpgray, False, smoothFactor, axs[0])
+    rowSumLines = findRowsOrCols(warpgray, False, smoothFactor, ax0)
     print("rows", rowSumLines)
-    colSumLines = findRowsOrCols(warpgray, True, smoothFactor, axs[1])
+    colSumLines = findRowsOrCols(warpgray, True, smoothFactor, ax1)
     print("cols", colSumLines)
     
     
-    if normalPlots:
-        plt.show(block=False)
-    else:
-        resultImages["imgSumPlotImg"] = plotToImg()
+    if "imgSumPlotImg" in generate:
+        if normalPlots:
+            plt.show(block=False)
+        else:
+            resultImages["imgSumPlotImg"] = plotToImg()
 
 
     if len(rowSumLines) < 6 or len(colSumLines) < 6:
@@ -568,75 +585,75 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False):
     print("cols2", colSumLines)
 
     #just display
-    plt.figure(figsize=(10,10))
-    i = 1
-    for y in range(5):
-        for x in range(5):
-            plt.subplot(5,5,i)
-            i += 1
-            plt.xticks([])
-            plt.yticks([])
-            plt.grid(False)
-            minX = colSumLines[x]
-            maxX = colSumLines[x+1]
-            minY = rowSumLines[y]
-            maxY = rowSumLines[y+1]
-            crop_img = warpgray[minY:maxY, minX:maxX]
-            plt.imshow(crop_img, cmap=plt.cm.gray)
-    if normalPlots:
-        plt.show(block=False)
-    else:
-        diceImg1 = plotToImg()
-        resultImages["diceImg1"] = diceImg1
+    if "diceRaw" in generate:
+        plt.figure(figsize=(10,10))
+        i = 1
+        for y in range(5):
+            for x in range(5):
+                plt.subplot(5,5,i)
+                i += 1
+                plt.xticks([])
+                plt.yticks([])
+                plt.grid(False)
+                minX = colSumLines[x]
+                maxX = colSumLines[x+1]
+                minY = rowSumLines[y]
+                maxY = rowSumLines[y+1]
+                crop_img = warpgray[minY:maxY, minX:maxX]
+                plt.imshow(crop_img, cmap=plt.cm.gray)
+        if normalPlots:
+            plt.show(block=False)
+        else:
+            resultImages["diceRaw"] = plotToImg()
 
-    letterResize = 30
-    #make square, resize, display, and save to an array
-    letterImgs = []
-    plt.figure(figsize=(10,10))
-    i = 1
-    for y in range(5):
-        letterImgRow = []
-        for x in range(5):
-            plt.subplot(5,5,i)
-            i += 1
-            plt.xticks([])
-            plt.yticks([])
-            plt.grid(False)
-            minX = colSumLines[x]
-            maxX = colSumLines[x+1]
-            minY = rowSumLines[y]
-            maxY = rowSumLines[y+1]
-            w = maxX - minX
-            h = maxY - minY
-            #print("w,h 1:", w, h)
-            d = abs(w - h)
-            if d > 0:
-                if int(d/2) == d/2:
-                    #even difference
-                    d1 = d2 = int(d/2)
-                else:
-                    #odd difference
-                    d1 = int((d-1)/2)
-                    d2 = int((d+1)/2)
-                if w > h:
-                    #wider than it is tall
-                    minX += d1
-                    maxX -= d2
-                else:
-                    #taller than it is wide
-                    minY += d1
-                    maxY -= d2
-            #print("w,h 2:", maxX-minX, maxY-minY)
-            crop_img = warpgray[minY:maxY, minX:maxX]
-            letterImg = cv2.resize(crop_img, (letterResize,letterResize), interpolation=cv2.INTER_AREA)
-            plt.imshow(letterImg, cmap=plt.cm.gray)
-            letterImgRow.append(letterImg)
-        letterImgs.append(letterImgRow)
-    if normalPlots:
-        plt.show(block=False)
-    else:
-        diceImg2 = plotToImg()
-        resultImages["diceImg2"] = diceImg2
+    if "dice" in generate:
+        letterResize = 30
+        #make square, resize, display, and save to an array
+        letterImgs = []
+        plt.figure(figsize=(10,10))
+        i = 1
+        for y in range(5):
+            letterImgRow = []
+            for x in range(5):
+                plt.subplot(5,5,i)
+                i += 1
+                plt.xticks([])
+                plt.yticks([])
+                plt.grid(False)
+                minX = colSumLines[x]
+                maxX = colSumLines[x+1]
+                minY = rowSumLines[y]
+                maxY = rowSumLines[y+1]
+                w = maxX - minX
+                h = maxY - minY
+                #print("w,h 1:", w, h)
+                d = abs(w - h)
+                if d > 0:
+                    if int(d/2) == d/2:
+                        #even difference
+                        d1 = d2 = int(d/2)
+                    else:
+                        #odd difference
+                        d1 = int((d-1)/2)
+                        d2 = int((d+1)/2)
+                    if w > h:
+                        #wider than it is tall
+                        minX += d1
+                        maxX -= d2
+                    else:
+                        #taller than it is wide
+                        minY += d1
+                        maxY -= d2
+                #print("w,h 2:", maxX-minX, maxY-minY)
+                crop_img = warpgray[minY:maxY, minX:maxX]
+                letterImg = cv2.resize(crop_img, (letterResize,letterResize), interpolation=cv2.INTER_AREA)
+                plt.imshow(letterImg, cmap=plt.cm.gray)
+                letterImgRow.append(letterImg)
+            letterImgs.append(letterImgRow)
+        if normalPlots:
+            plt.show(block=False)
+        else:
+            resultImages["dice"] = plotToImg()
     
     return resultImages
 
@@ -647,19 +664,25 @@ def findAndShowBoggleBoard(imgDir, imgFilename):
     try:
         print(imgPath)
         image = cv2.imread(imgPath)
-        #imgs = findBoggleBoard(image, normalPlots=True, harshErrors=False)
-        imgs = findBoggleBoard(image, normalPlots=False, harshErrors=True)
+        generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
+        #generate = ("dice")
+        #normalPlots = False
+        normalPlots = True
+        #harshErrors = False
+        harshErrors = True
+        imgs = findBoggleBoard(image, normalPlots, harshErrors, generate)
         for title, img in imgs.items():
             #print("title, img:", title, img)
             #cv2.imshow(title, img)
             imshow_fit(title, img)
-        waitForKey()
+        if len(imgs) > 0:
+            waitForKey()
+        else:
+            waitForConsoleEnter()
     except Exception as e:
         #print(str(e))
         print(traceback.format_exc())
-        print("=== hit enter to continue ===")
-        input()
-        print("=== continuing ===")
+        waitForConsoleEnter()
 
 
 def processVideo():
@@ -690,8 +713,8 @@ def processVideo():
             # cv2.imshow('Frame', frame)
             try:
                 imgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True)
-                imshow_fit("warpedImage", imgs["warpedImage"])
-                boggleVidout.write(imgs["warpedImage"])
+                imshow_fit("warpedimage", imgs["warpedimage"])
+                boggleVidout.write(imgs["warpedimage"])
             except Exception as e:
                 print("DROP FRAME #", frameNum)
                 error = str(e)
