@@ -1,9 +1,11 @@
-import cv2, math, os, json, traceback, io
+import cv2, math, os, json, traceback, io, time
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 
-ROOT_DIR="E:/Nextcloud/Projects/Boggle2.0/"
+#ROOT_DIR="E:/Nextcloud/Projects/Boggle2.0/"
+ROOT_DIR="/home/johanv/Nextcloud/Projects/Boggle2.0/"
+#ROOT_DIR="../"
 
 VIDEO_DIR =ROOT_DIR+ "/Boggle-Videos/Boggle5x5/input/"
 
@@ -711,7 +713,8 @@ def processVideo(videoDir, videoFile):
     print("frame size: ", width, "x", height)
     
     #generate = ("warpedimage", "debugimage", "debugmask")
-    generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
+    #generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
+    generate = ()
     
     letterImgNum = 0
     
@@ -796,8 +799,13 @@ def processVideos():
     videos = os.listdir(VIDEO_DIR)
     videos.sort()
     #videos.reverse()
+    allStartTime = time.time()
     for vid in videos:
+        startTime = time.time()
+        print("starting video:", vid)
         processVideo(VIDEO_DIR, vid)
+        print("done with video:", vid, " time:", time.time() - startTime)
+    print("all videos time: ", time.time() - allStartTime)
 
 if __name__ == "__main__":
     processVideos()
