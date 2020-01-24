@@ -3,7 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 
-IMG_DIR = '../cascademan/categories/5x5/images'
+VIDEO_DIR = "../Boggle-Videos/Boggle5x5/input/"
+
+IMG_DIR = '../cascademan/categories/5x5/images/'
+
+LETTER_OUT_DIR = "../Letters/"
+
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -13,7 +18,7 @@ MAX_DISP_DIM = 500
 
 VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/edited/speedup.mp4"
 #VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/BoggleClip009.mp4"
-VIDEO_OUT_DIR = "../Boggle-Videos/Boggle5x5/"
+VIDEO_OUT_DIR = "../Boggle-Videos/Boggle5x5/output/"
 VIDEO_ENCODER = "H264"
 VIDEO_FPS = 30
 
@@ -610,56 +615,61 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
         else:
             resultImages["diceRaw"] = plotToImg()
 
+    
     if "dice" in generate:
-        letterResize = 30
-        #make square, resize, display, and save to an array
-        letterImgs = []
         plt.figure(figsize=(10,10))
         i = 1
-        for y in range(5):
-            letterImgRow = []
-            for x in range(5):
+
+    letterResize = 30
+    #make square, resize, display, and save to an array
+    letterImgs = []
+    for y in range(5):
+        letterImgRow = []
+        for x in range(5):
+            minX = colSumLines[x]
+            maxX = colSumLines[x+1]
+            minY = rowSumLines[y]
+            maxY = rowSumLines[y+1]
+            w = maxX - minX
+            h = maxY - minY
+            #print("w,h 1:", w, h)
+            d = abs(w - h)
+            if d > 0:
+                if int(d/2) == d/2:
+                    #even difference
+                    d1 = d2 = int(d/2)
+                else:
+                    #odd difference
+                    d1 = int((d-1)/2)
+                    d2 = int((d+1)/2)
+                if w > h:
+                    #wider than it is tall
+                    minX += d1
+                    maxX -= d2
+                else:
+                    #taller than it is wide
+                    minY += d1
+                    maxY -= d2
+            #print("w,h 2:", maxX-minX, maxY-minY)
+            crop_img = warpgray[minY:maxY, minX:maxX]
+            letterImg = cv2.resize(crop_img, (letterResize,letterResize), interpolation=cv2.INTER_AREA)
+            if "dice" in generate:
                 plt.subplot(5,5,i)
                 i += 1
                 plt.xticks([])
                 plt.yticks([])
                 plt.grid(False)
-                minX = colSumLines[x]
-                maxX = colSumLines[x+1]
-                minY = rowSumLines[y]
-                maxY = rowSumLines[y+1]
-                w = maxX - minX
-                h = maxY - minY
-                #print("w,h 1:", w, h)
-                d = abs(w - h)
-                if d > 0:
-                    if int(d/2) == d/2:
-                        #even difference
-                        d1 = d2 = int(d/2)
-                    else:
-                        #odd difference
-                        d1 = int((d-1)/2)
-                        d2 = int((d+1)/2)
-                    if w > h:
-                        #wider than it is tall
-                        minX += d1
-                        maxX -= d2
-                    else:
-                        #taller than it is wide
-                        minY += d1
-                        maxY -= d2
-                #print("w,h 2:", maxX-minX, maxY-minY)
-                crop_img = warpgray[minY:maxY, minX:maxX]
-                letterImg = cv2.resize(crop_img, (letterResize,letterResize), interpolation=cv2.INTER_AREA)
                 plt.imshow(letterImg, cmap=plt.cm.gray)
-                letterImgRow.append(letterImg)
-            letterImgs.append(letterImgRow)
+            letterImgRow.append(letterImg)
+        letterImgs.append(letterImgRow)
+
+    if "dice" in generate:
         if normalPlots:
             plt.show(block=False)
         else:
             resultImages["dice"] = plotToImg()
     
-    return resultImages
+    return resultImages, letterImgs
 
 def findAndShowBoggleBoard(imgDir, imgFilename):
     imgPath = imgDir + "/" + imgFilename
@@ -674,7 +684,7 @@ def findAndShowBoggleBoard(imgDir, imgFilename):
         normalPlots = True
         #harshErrors = False
         harshErrors = True
-        imgs = findBoggleBoard(image, normalPlots, harshErrors, generate)
+        imgs, letterImgs = findBoggleBoard(image, normalPlots, harshErrors, generate)
         for title, img in imgs.items():
             #print("title, img:", title, img)
             #cv2.imshow(title, img)
@@ -689,8 +699,8 @@ def findAndShowBoggleBoard(imgDir, imgFilename):
         waitForConsoleEnter()
 
 
-def processVideo():
-    vid = cv2.VideoCapture(VIDEO_INPUT)
+def processVideo(videoDir, videoFile):
+    vid = cv2.VideoCapture(videoDir + "/" + videoFile)
     if (vid.isOpened() == False):
         print("Error opening video stream or file")
     ret, frame = vid.read()
@@ -700,6 +710,8 @@ def processVideo():
     
     #generate = ("warpedimage", "debugimage", "debugmask")
     generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
+    
+    letterImgNum = 0
     
     videoOuts = {}
     errors = {}
@@ -713,15 +725,23 @@ def processVideo():
             # Display the resulting frame
             # cv2.imshow('Frame', frame)
             try:
-                imgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True, generate=generate)
+                imgs, letterImgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True, generate=generate)
+                
+                for row in letterImgs:
+                    for letterImg in row:
+                        filename = str(letterImgNum).zfill(9) + ".png"
+                        cv2.imwrite(LETTER_OUT_DIR + "/" + filename, letterImg)
+                        letterImgNum += 1
+                
+                #draw the windows
                 for title, img in imgs.items():
                     imshow_fit(title, img)
                     #print(title, img.shape)
                     if not title in videoOuts:
-                        filename = VIDEO_OUT_DIR + title + ".mp4"
+                        filename = VIDEO_OUT_DIR + videoFile + "_" + title + ".mp4"
                         h = img.shape[0]
                         w = img.shape[1]
-                        videoOuts[title] = cv2.VideoWriter(filename,fourcc cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, (w, h))
+                        videoOuts[title] = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, (w, h))
                     videoOuts[title].write(img)
             except Exception as e:
                 print("DROP FRAME #", frameNum)
@@ -770,6 +790,12 @@ def processImages():
         if not img in problems:
             findAndShowBoggleBoard(IMG_DIR, img)
 
+def processVideos():
+    videos = os.listdir(VIDEO_DIR)
+    videos.sort()
+    #videos.reverse()
+    for vid in videos:
+        processVideo(VIDEO_DIR, vid)
 
 if __name__ == "__main__":
-    processVideo()
+    processVideos()
