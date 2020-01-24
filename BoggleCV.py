@@ -712,11 +712,25 @@ def processVideo(videoDir, videoFile):
     resolution = (width, height)
     print("frame size: ", width, "x", height)
     
+    letterOutDir = LETTER_OUT_DIR + "/" + videoFile
+    try:
+        os.mkdir(letterOutDir)
+    except FileExistsError:
+        pass
+    letterImgNums = []
+    letterOutDirs = []
+    for x in range(25):
+        dirName = letterOutDir + "/" + str(x).zfill(2)
+        letterOutDirs.append(dirName)
+        try:
+            os.mkdir(dirName)
+        except FileExistsError:
+            pass
+        letterImgNums.append(0)
+    
     #generate = ("warpedimage", "debugimage", "debugmask")
     #generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
     generate = ()
-    
-    letterImgNum = 0
     
     videoOuts = {}
     errors = {}
@@ -732,11 +746,13 @@ def processVideo(videoDir, videoFile):
             try:
                 imgs, letterImgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True, generate=generate)
                 
+                i = 0
                 for row in letterImgs:
                     for letterImg in row:
-                        filename = str(letterImgNum).zfill(9) + ".png"
-                        cv2.imwrite(LETTER_OUT_DIR + "/" + filename, letterImg)
-                        letterImgNum += 1
+                        filename = str(letterImgNums[i]).zfill(9) + ".png"
+                        cv2.imwrite(letterOutDirs[i] + "/" + filename, letterImg)
+                        letterImgNums[i] += 1
+                        i += 1
                 
                 #draw the windows
                 for title, img in imgs.items():
