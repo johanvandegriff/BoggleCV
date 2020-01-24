@@ -769,7 +769,7 @@ def processVideo(videoDir, videoFile):
 
     # Closes all the frames
     cv2.destroyAllWindows()
-    json.dump(errors, open(VIDEO_INPUT+'.json', 'w'), indent=2)
+    json.dump(errors, open(VIDEO_OUT_DIR+videoFile+'.json', 'w'), indent=2)
 
 
 def processImages():
