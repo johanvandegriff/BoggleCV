@@ -1,0 +1,1 @@
+"C:\Program Files\CMake\bin\cmake.exe" -B"E:\GitRekt\opencv\build" -H"E:\GitRekt\opencv" -G"Visual Studio 16 2019" -DBUILD_opencv_world=ON -DWITH_CUDA=ON -DCUDA_FAST_MATH=ON -DWITH_CUBLAS=ON -DINSTALL_TESTS=ON -DINSTALL_C_EXAMPLES=ON -DBUILD_EXAMPLES=ON
