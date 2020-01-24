@@ -3,11 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 
-VIDEO_DIR = "../Boggle-Videos/Boggle5x5/input/"
+ROOT_DIR="E:/Nextcloud/Projects/Boggle2.0/"
 
-IMG_DIR = '../cascademan/categories/5x5/images/'
+VIDEO_DIR =ROOT_DIR+ "/Boggle-Videos/Boggle5x5/input/"
 
-LETTER_OUT_DIR = "../Letters/"
+IMG_DIR = ROOT_DIR+'/cascademan/categories/5x5/images/'
+
+LETTER_OUT_DIR = ROOT_DIR+"/Letters/"
 
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
@@ -16,9 +18,9 @@ YELLOW = (0, 255, 255)
 CONTOUR_THICKNESS = 2
 MAX_DISP_DIM = 500
 
-VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/edited/speedup.mp4"
-#VIDEO_INPUT = "../Boggle-Videos/Boggle5x5/BoggleClip009.mp4"
-VIDEO_OUT_DIR = "../Boggle-Videos/Boggle5x5/output/"
+VIDEO_INPUT = ROOT_DIR+"/Boggle-Videos/Boggle5x5/edited/speedup.mp4"
+#VIDEO_INPUT = ROOT_DIR+"/Boggle-Videos/Boggle5x5/BoggleClip009.mp4"
+VIDEO_OUT_DIR = ROOT_DIR+"/Boggle-Videos/Boggle5x5/output/"
 VIDEO_ENCODER = "H264"
 VIDEO_FPS = 30
 
