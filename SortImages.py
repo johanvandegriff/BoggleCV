@@ -6,9 +6,9 @@ INPUT_IMAGES="E:/Letters2/Letters/"
 pth2img='E:/Letters2/Letters/0124201552-01.3gp/00/000000000.png'
 
 
-length,width,_=cv2.imread(pth2img).shape
-print(length,width)
-if length != width:
+LENGTH, width, _=cv2.imread(pth2img).shape
+print(LENGTH, width)
+if LENGTH != width:
     raise(ValueError)
 
 videoletters=os.listdir(INPUT_IMAGES)
@@ -67,11 +67,10 @@ def LoadFrame(i,ImageStructure):
         thisimagename = ImageStructure + '/' + directory + '/' + imageName
         print(thisimagename)
         img=cv2.imread(thisimagename)
-        #img=cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         TheseImages.append(img)
 
-        # cv2.imshow("Image",TheseImages)
-        # cv2.waitKey()
+
+
 
     return TheseImages
 
@@ -86,10 +85,19 @@ def loadimages(folder):
     print(2)
 
     for i in range(L):
+        relativeDispSize=7
         thisFrame=LoadFrame(i, folder)
-        dispSize = length * 7
+        dispSize = LENGTH*relativeDispSize
+        B=int(((relativeDispSize-5)/6)*LENGTH)
         image = create_blank(dispSize, dispSize, rgb_color=(255,0,0))
-        image[100:130,100:130]=thisFrame[0]
+        for index, letter in enumerate(thisFrame):
+            xindex=index%5
+            yindex=int(index/5)
+            xposition= (xindex) * LENGTH+(xindex+1)*B
+            yposition=(yindex) * LENGTH+(yindex+1)*B
+            image[yposition:yposition+LENGTH, xposition:xposition+LENGTH] = thisFrame[index]
+
+        #image[100:130,100:130]=thisFrame[0]
         imshow_fit("Image", image)
         cv2.waitKey()
 
