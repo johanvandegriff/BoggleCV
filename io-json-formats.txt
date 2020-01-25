@@ -1,0 +1,89 @@
+program to process multiple videos
+INPUT: a directory of videos
+OUTPUT: videos json file
+
+videos json file:
+{
+    "123_456.mp4": {
+        "board": board
+        "frames": [frame, frame, frame, frame, ...],
+    }
+}
+
+board:
+[
+    ["A", "B", "C", "D", "E"],
+    ["A", "B", "C", "D", "E"],
+    ["A", "B", "C", "D", "E"],
+    ["A", "B", "C", "D", "E"],
+    ["A", "B", "C", "D", "Qu"]
+]
+
+frame:
+[
+[letterImg, letterImg, letterImg, letterImg, letterImg],
+[letterImg, letterImg, letterImg, letterImg, letterImg],
+[letterImg, letterImg, letterImg, letterImg, letterImg],
+[letterImg, letterImg, letterImg, letterImg, letterImg],
+[letterImg, letterImg, letterImg, letterImg, letterImg]
+]
+
+letterImg:
+~88x88 (or 86x86, etc., variable size) grayscale image
+
+
+
+frame labelling program:
+INPUT: videos json file
+OUTPUT: labelled frames json file
+
+labelled frames json file:
+[
+    {
+        "state": "good"/"bad"/"ugly"/"discard",
+        "notes": "MPBRO was here",
+        "board": board,
+        "video": "123_456.mp4",
+        "frameNum": 123,
+        "boardImg": frame    #just 1 frame
+    }
+]
+
+
+meaning of "state"
+good:       all the letters are clearly legible and not cut off
+bad:        all the letters are blurry and/or faint from reflected light
+ugly:       all the "letters" are not even recognizable
+discard:    individual letters are a mix between good, bad, and ugly
+
+
+letter labelling program:
+INPUT: labelled frames json file (filtered, only "discard" used)
+OUTPUT: labelled letters json file
+
+labelled letters json file
+[
+    {
+        "notes": "MPBRO was here",
+        "letter": "A",
+        "video": "123_456.mp4",
+        "frameNum": 123,
+        "col": 3,
+        "row", 2,
+        "letterImg": letter
+    }
+]
+
+
+machine learning dataset generator
+INPUT: labelled frames json file(s), labelled letters json file(s)
+OUTPUT: dataset with labels
+
+
+dataset with labels:
+data = [letterImgScale, letterImgScale, letterImgScale, ...]
+labels = [0, 26, 14, 5, 2, 8, ...]  #0 = unknown,  1-26 = A-Z (with Qu)
+
+
+letterImgScale:
+30x30 grayscale image
