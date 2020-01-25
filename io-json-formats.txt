@@ -11,22 +11,9 @@ videos json file:
 }
 
 board:
-[
-    ["A", "B", "C", "D", "E"],
-    ["A", "B", "C", "D", "E"],
-    ["A", "B", "C", "D", "E"],
-    ["A", "B", "C", "D", "E"],
-    ["A", "B", "C", "D", "Qu"]
-]
+["Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D"]
 
-frame:
-[
-[letterImg, letterImg, letterImg, letterImg, letterImg],
-[letterImg, letterImg, letterImg, letterImg, letterImg],
-[letterImg, letterImg, letterImg, letterImg, letterImg],
-[letterImg, letterImg, letterImg, letterImg, letterImg],
-[letterImg, letterImg, letterImg, letterImg, letterImg]
-]
+frame: [letterImg, letterImg, letterImg, letterImg, ... x25]
 
 letterImg:
 ~88x88 (or 86x86, etc., variable size) grayscale image
@@ -76,13 +63,13 @@ labelled letters json file
 
 
 machine learning dataset generator
-INPUT: labelled frames json file(s), labelled letters json file(s)
-OUTPUT: dataset with labels
+INPUT: labelled frames json file(s), labelled letters json file(s), options of what to include, should it truncate ones with way too many letters
+OUTPUT: dataset with labels, how many of each letter?
 
 
 dataset with labels:
 data = [letterImgScale, letterImgScale, letterImgScale, ...]
-labels = [0, 26, 14, 5, 2, 8, ...]  #0 = unknown,  1-26 = A-Z (with Qu)
+labels = [0, 26, 14, 5, 2, 8, ...]  #0 = unknown,  1-26 = A-Z
 
 
 letterImgScale:
