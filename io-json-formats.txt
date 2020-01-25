@@ -7,13 +7,18 @@ videos json file:
     "123_456.mp4": {
         "board": board
         "frames": [frame, frame, frame, frame, ...],
+    },
+    "789_123.mp4": {
+        "board": board
+        "frames": [frame, frame, frame, frame, ...],
     }
 }
 
 board:
 ["Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D"]
 
-frame: [letterImg, letterImg, letterImg, letterImg, ... x25]
+frame:
+[letterImg, letterImg, letterImg, letterImg, ... x25]
 
 letterImg:
 ~88x88 (or 86x86, etc., variable size) grayscale image
