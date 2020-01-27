@@ -5,17 +5,14 @@ OUTPUT: videos json file
 videos json file:
 {
     "123_456.mp4": {
-        "board": board
+        "board": "QWERTYUIOPASDFGHJKLZXCVBN"
         "frames": [frame, frame, frame, frame, ...],
     },
     "789_123.mp4": {
-        "board": board
+        "board": "QWERTYUIOPASDFGHJKLZXCVBN"
         "frames": [frame, frame, frame, frame, ...],
     }
 }
-
-board:
-["Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D", "Q", "A", "B", "C", "D"]
 
 frame:
 [letterImg, letterImg, letterImg, letterImg, ... x25]
@@ -34,7 +31,7 @@ labelled frames json file:
     {
         "state": "good"/"bad"/"ugly"/"discard",
         "notes": "MPBRO was here",
-        "board": board,
+        "board": "QWERTYUIOPASDFGHJKLZXCVBN",
         "video": "123_456.mp4",
         "frameNum": 123,
         "boardImg": frame    #just 1 frame
