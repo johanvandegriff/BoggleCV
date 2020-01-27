@@ -2,8 +2,10 @@ import cv2, os
 import numpy as np
 
 
-INPUT_IMAGES="E:/Letters2/Letters/"
-pth2img='E:/Letters2/Letters/0124201552-01.3gp/00/000000000.png'
+#INPUT_IMAGES="E:/Letters2/Letters/"
+INPUT_IMAGES="/home/johanv/Downloads/Letters/"
+
+pth2img=INPUT_IMAGES+'0124201552-01.3gp/00/000000000.png'
 KEYS={
     'a':0x61,
     'b':0x62,
@@ -157,7 +159,35 @@ def mkBoardSortFrame(thisFrame):
         image[yposition:yposition + LENGTH, xposition:xposition + LENGTH] = thisFrame[index]
     return image
 
+def showFrame(frame):
+    image=mkBoardSortFrame(frame)
+    #image[100:130,100:130]=thisFrame[0]
+    cv2.namedWindow("Image", cv2.WINDOW_AUTOSIZE)
+    #cv2.resizeWindow("Image",MAX_DISP_DIM,MAX_DISP_DIM)
+    imshow_fit("Image", image)
+    cv2.moveWindow("Image", 700, 0)
+
 def loadimages(folder):
+    firstFrame = LoadFrame(0, folder)
+    showFrame(firstFrame)
+    cv2.waitKey(1) #needed to display the image, but only wait for 1 ms for a key before moving on
+    boardStr = ""
+    while True:
+        print("What letters are on the board? Type them in one long line:")
+        boardInp = input()
+        board = ""
+        for c in boardInp.upper():
+            if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                board += c
+            else:
+                print("Illegal character: '"+c+"', excluding. Valid chars are a-z and A-Z.")
+        if len(board) != 25:
+            print("Please enter a string of length 25. (You put", len(board), "valid characters.)")
+        else:
+            break
+    print("board:", board)
+    print("Put notes for this video here and press enter:")
+    notes = input()
     L=len(os.listdir(folder + "/00/"))
     #print(2)
 
@@ -165,11 +195,7 @@ def loadimages(folder):
     i=0
     while i < L:
         thisFrame = LoadFrame(i, folder)
-        image=mkBoardSortFrame(thisFrame)
-        #image[100:130,100:130]=thisFrame[0]
-        cv2.namedWindow("Image", cv2.WINDOW_AUTOSIZE)
-        #cv2.resizeWindow("Image",MAX_DISP_DIM,MAX_DISP_DIM)
-        imshow_fit("Image", image)
+        showFrame(thisFrame)
         key=cv2.waitKey()&0xff
         print(hex(key))
         if key == 0x08: #backspace
