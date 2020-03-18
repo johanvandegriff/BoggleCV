@@ -450,7 +450,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     maskblur = cv2.blur(mask, blurAmount)
     # maskblur = cv2.threshold(maskblur, 80, 255, cv2.THRESH_BINARY_INV)
     maskblur = cv2.inRange(maskblur, (blurThreshold,), (255,))
-    contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
+    contourimg, contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
     # print(hierarchy) #TODO
     
     bestCtr = findBestCtr(contours)
@@ -510,7 +510,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
             resultImages["debugmask"] = debugmask
         if "debugimage" in generate:
             resultImages["debugimage"] = debugimage
-        return resultImages
+        return resultImages, None
     
     endFraction = 0.01
     
@@ -567,7 +567,7 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
         print("!!!! not enough grid lines")
         if harshErrors:
             raise BoggleError("not enough gridlines")
-        return resultImages
+        return resultImages, None
     
     #fix the outermost lines of the board
     h1 = rowSumLines[2] - rowSumLines[1]
