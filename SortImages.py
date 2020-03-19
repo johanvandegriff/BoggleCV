@@ -1,11 +1,16 @@
-import cv2, os
+import cv2, os, json
 import numpy as np
 
 
 #INPUT_IMAGES="E:/Letters2/Letters/"
+#INPUT_IMAGES="/home/johanv/Nextcloud/Projects/Boggle2.0/Letters/"
 INPUT_IMAGES="/home/johanv/Downloads/Letters/"
+OUT_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled.json"
 
-pth2img=INPUT_IMAGES+'0124201552-01.3gp/00/000000000.png'
+pth2img=INPUT_IMAGES+'20200124_155523.mp4/00/000000000.png'
+
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 KEYS={
     'a':0x61,
     'b':0x62,
@@ -77,9 +82,9 @@ KEYS={
 
 
 
-LENGTH, width, _=cv2.imread(pth2img).shape
-#print(LENGTH, width)
-if LENGTH != width:
+LENGTH, WIDTH, _=cv2.imread(pth2img).shape
+#print(LENGTH, WIDTH)
+if LENGTH != WIDTH:
     raise(ValueError)
 
 videoletters=os.listdir(INPUT_IMAGES)
@@ -129,7 +134,7 @@ def create_blank(width, height, rgb_color=(0, 0, 0)):
 
     return image
 
-def LoadFrame(i,ImageStructure):
+def loadFrame(i,ImageStructure):
     imageName = str(i).zfill(9) + ".png"
     #print(3)
     TheseImages = []
@@ -152,11 +157,13 @@ def mkBoardSortFrame(thisFrame):
     B = int(((relativeDispSize - 5) / 6) * LENGTH)
     image = create_blank(dispSize, dispSize, rgb_color=(255, 0, 0))
     for index, letter in enumerate(thisFrame):
+#        print(index, letter, thisFrame)
         xindex = index % 5
         yindex = int(index / 5)
         xposition = (xindex) * LENGTH + (xindex + 1) * B
         yposition = (yindex) * LENGTH + (yindex + 1) * B
-        image[yposition:yposition + LENGTH, xposition:xposition + LENGTH] = thisFrame[index]
+        image[yposition:yposition + LENGTH, xposition:xposition + LENGTH] =\
+         thisFrame[index]
     return image
 
 def showFrame(frame):
@@ -168,16 +175,17 @@ def showFrame(frame):
     cv2.moveWindow("Image", 700, 0)
 
 def loadimages(folder):
-    firstFrame = LoadFrame(0, folder)
+    print(folder)
+    firstFrame = loadFrame(0, folder)
     showFrame(firstFrame)
-    cv2.waitKey(1) #needed to display the image, but only wait for 1 ms for a key before moving on
+    cv2.waitKey(1000) #needed to display the image, but wait for 1 second for a key before moving on
     boardStr = ""
     while True:
         print("What letters are on the board? Type them in one long line:")
         boardInp = input()
         board = ""
         for c in boardInp.upper():
-            if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            if c in ALPHABET:
                 board += c
             else:
                 print("Illegal character: '"+c+"', excluding. Valid chars are a-z and A-Z.")
@@ -186,15 +194,15 @@ def loadimages(folder):
         else:
             break
     print("board:", board)
-    print("Put notes for this video here and press enter:")
-    notes = input()
+    #print("Put notes for this video here and press enter:")
+    #notes = input()
     L=len(os.listdir(folder + "/00/"))
-    #print(2)
-
+    
+    """
     # for i in range(L):
     i=0
     while i < L:
-        thisFrame = LoadFrame(i, folder)
+        thisFrame = loadFrame(i, folder)
         showFrame(thisFrame)
         key=cv2.waitKey()&0xff
         print(hex(key))
@@ -202,13 +210,42 @@ def loadimages(folder):
             i -= 1
         else:
             i += 1
+    """
+    
+    images = []
+    labels = []
+
+    for i in range(L):
+        print(i, "/", L)
+        thisFrame = loadFrame(i, folder)
+        for j in range(25):
+            img = []
+            for x in range(LENGTH):
+                row = []
+                for y in range(LENGTH):
+                    row.append(int(thisFrame[j][x][y][0]))
+                img.append(row)
+            for rot in range(4):
+                images.append(img)
+                labels.append(ALPHABET.index(board[j]))
+                #https://artemrudenko.wordpress.com/2014/08/28/python-rotate-2d-arraymatrix-90-degrees-one-liner/
+                img = list(zip(*img[::-1])) #rotate 90 degrees (still the same letter!)
+#        print(thisFrame[10][10][10])
+    return images, labels
 
 
 
-
-
-
+allImages = []
+allLabels = []
 for vid in videoletters:
-    loadimages(INPUT_IMAGES+vid)
-    #print(1)
+    images, labels = loadimages(INPUT_IMAGES+vid)
+    allImages.extend(images)
+    allLabels.extend(labels)
+
+out = {
+    "imgs": allImages,
+    "labels": allLabels
+}
+with open(OUT_FILE, 'w') as f:
+    json.dump(out, f)
 

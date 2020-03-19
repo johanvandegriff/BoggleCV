@@ -11,7 +11,8 @@ VIDEO_DIR =ROOT_DIR+ "/Boggle-Videos/Boggle5x5/input/"
 
 IMG_DIR = ROOT_DIR+'/cascademan/categories/5x5/images/'
 
-LETTER_OUT_DIR = ROOT_DIR+"/Letters/"
+#LETTER_OUT_DIR = ROOT_DIR+"/Letters/"
+LETTER_OUT_DIR = "/home/johanv/Downloads/Letters/"
 
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
