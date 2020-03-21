@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # TensorFlow and tf.keras
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import datasets, layers, models
 
 # Helper libraries
 import numpy as np
@@ -14,7 +15,9 @@ import json
 
 print(tf.__version__)
 
+#DATA_FILE="/home/johanv/Downloads/labelled.json"
 DATA_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled.json"
+#DATA_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled-20200124_155523.mp4.json"
 
 #fashion_mnist = keras.datasets.fashion_mnist
 #(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
@@ -26,8 +29,20 @@ with open(DATA_FILE, 'r') as f:
 
 IMG_DIM = 30
 
-images = data["imgs"]
-labels = data["labels"]
+images_in = data["imgs"]
+labels_in = data["labels"]
+
+images = []
+labels = []
+for rot in range(4):
+    for i in range(len(images_in)):
+    #https://artemrudenko.wordpress.com/2014/08/28/python-rotate-2d-arraymatrix-90-degrees-one-liner/
+        images_in[i] = list(zip(*images_in[i][::-1])) #rotate 90 degrees (still the same letter!)
+    images.extend(images_in)
+    labels.extend(labels_in)
+
+
+images = np.array(images, dtype=np.uint8).reshape((-1, IMG_DIM, IMG_DIM, 1))
 
 split = int(0.15 * len(images))
 
@@ -62,24 +77,49 @@ for i in range(25):
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.imshow(train_images[i], cmap=plt.cm.binary)
+    plt.imshow(train_images[i].reshape((IMG_DIM, IMG_DIM)), cmap=plt.cm.binary)
     plt.xlabel(class_names[train_labels[i]])
 plt.show()
 
-model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(IMG_DIM,IMG_DIM)),
-    keras.layers.Dense(128, activation="sigmoid"),
-    keras.layers.Dense(64, activation="sigmoid"),
-    keras.layers.Dense(L, activation="softmax")
-])
+#model = keras.Sequential([
+#    keras.layers.Flatten(input_shape=(IMG_DIM,IMG_DIM)),
+#    keras.layers.Dense(128, activation="sigmoid"),
+#    keras.layers.Dense(64, activation="sigmoid"),
+#    keras.layers.Dense(L, activation="softmax")
+#])
 
-model.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer='adam',
-    metrics=['accuracy']
-)
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(IMG_DIM, IMG_DIM, 1)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
 
-model.fit(train_images, train_labels, epochs=7)
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(L, activation="softmax"))
+
+#model.compile(
+#    loss='sparse_categorical_crossentropy',
+#    optimizer='adam',
+#    metrics=['accuracy']
+#)
+#
+#model.fit(train_images, train_labels, epochs=7)
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+history = model.fit(train_images, train_labels, epochs=10, 
+                    validation_data=(test_images, test_labels))
+
+plt.plot(history.history['acc'], label='accuracy')
+plt.plot(history.history['val_acc'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim([0.5, 1])
+plt.legend(loc='lower right')
 
 test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
 
@@ -96,7 +136,7 @@ def plot_image(i, predictions_array, true_label, img):
   plt.xticks([])
   plt.yticks([])
 
-  plt.imshow(img, cmap=plt.cm.binary)
+  plt.imshow(img.reshape((IMG_DIM, IMG_DIM)), cmap=plt.cm.binary)
 
   predicted_label = np.argmax(predictions_array)
   if predicted_label == true_label:

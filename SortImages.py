@@ -1,6 +1,6 @@
 import cv2, os, json
 import numpy as np
-
+from progress.bar import Bar
 
 #INPUT_IMAGES="E:/Letters2/Letters/"
 #INPUT_IMAGES="/home/johanv/Nextcloud/Projects/Boggle2.0/Letters/"
@@ -215,8 +215,9 @@ def loadimages(folder):
     images = []
     labels = []
 
+    bar = Bar('Processing', max=L)
     for i in range(L):
-        print(i, "/", L)
+        # print(i+1, "/", L)
         thisFrame = loadFrame(i, folder)
         for j in range(25):
             img = []
@@ -225,12 +226,16 @@ def loadimages(folder):
                 for y in range(LENGTH):
                     row.append(int(thisFrame[j][x][y][0]))
                 img.append(row)
-            for rot in range(4):
-                images.append(img)
-                labels.append(ALPHABET.index(board[j]))
-                #https://artemrudenko.wordpress.com/2014/08/28/python-rotate-2d-arraymatrix-90-degrees-one-liner/
-                img = list(zip(*img[::-1])) #rotate 90 degrees (still the same letter!)
+            images.append(img)
+            labels.append(ALPHABET.index(board[j]))
+            #for rot in range(4):
+            #    images.append(img)
+            #    labels.append(ALPHABET.index(board[j]))
+            #    #https://artemrudenko.wordpress.com/2014/08/28/python-rotate-2d-arraymatrix-90-degrees-one-liner/
+            #    img = list(zip(*img[::-1])) #rotate 90 degrees (still the same letter!)
 #        print(thisFrame[10][10][10])
+        bar.next()
+    bar.finish()
     return images, labels
 
 
