@@ -31,7 +31,25 @@ Here are the various stages of the computer vision and machine learning pipeline
 
 8. This entire process is repeated over many images (and videos) to create a dataset of thousands of boggle letter images.
 9. The images are labelled by hand. For videos, this is much easier since you only have to label it once for the whole video.
-10. A Tensorflow model is trained on the dataset and exported to a file.
+10. A Tensorflow model is trained on the dataset and exported to a file. It uses a convolutional neural network (CNN) which is optimal for images and other 2-dimensional data. After the CNN, a few 1-dimensional layers are used to get the output to an easier format.
+```
+#convolutional (2-dimensional) layers
+model = models.Sequential()
+model.add(layers.Conv2D(64, (3, 3), activation='relu', input_shape=(IMG_DIM, IMG_DIM, 1)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(32, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(16, (3, 3), activation='relu'))
+
+#data is flattened from 2 dimensions to 1
+model.add(layers.Flatten())
+
+#a fully-connected layer is added for more flexibility in combining features
+model.add(layers.Dense(100, activation='relu'))
+
+#the final layer has 1 output for each letter of the alphabet, and they are expressed as percentages that it thinks it might be of each letter. usually, one letter is close to 100% and the rest are close to 0%, which means it is very sure of its decision. But if it is less sure of a result, the number would be lower, e.g. 80%, and it might have 1 or 2 other options that were 15% and 5% for example. This information can be used, possibly to ask the user for a better quality image, or a confirmation that the letter is correct.
+model.add(layers.Dense(26, activation="softmax"))
+```
 
 
 Note: steps 8-10 only have to be done one time to set up the pipeline.
