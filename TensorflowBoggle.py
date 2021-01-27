@@ -15,8 +15,8 @@ import json
 
 print(tf.__version__)
 
-#DATA_FILE="/home/johanv/Downloads/labelled.json"
-DATA_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled.json"
+DATA_FILE="/home/johanv/downloads/labelled.json"
+#DATA_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled.json"
 #DATA_FILE="/home/johanv/Nextcloud/Projects/Boggle2.0/labelled-20200124_155523.mp4.json"
 
 #fashion_mnist = keras.datasets.fashion_mnist
@@ -111,11 +111,13 @@ model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
-history = model.fit(train_images, train_labels, epochs=10, 
+history = model.fit(train_images, train_labels, epochs=10,
                     validation_data=(test_images, test_labels))
 
-plt.plot(history.history['acc'], label='accuracy')
-plt.plot(history.history['val_acc'], label = 'val_accuracy')
+print(history)
+
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.ylim([0.5, 1])
