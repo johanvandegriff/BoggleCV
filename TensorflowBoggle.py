@@ -1,5 +1,6 @@
-#https://www.tensorflow.org/tutorials/keras/classification
+#!/usr/bin/python3
 
+#https://www.tensorflow.org/tutorials/keras/classification
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # TensorFlow and tf.keras

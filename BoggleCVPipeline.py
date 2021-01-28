@@ -1,19 +1,24 @@
 #!/usr/bin/python3
 import cv2, math, os, json, traceback, io, time
+print(cv2.__version__)
+
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.signal
 
-#ROOT_DIR="E:/Nextcloud/Projects/Boggle2.0/"
-ROOT_DIR="/home/johanv/Nextcloud/Projects/Boggle2.0/"
-#ROOT_DIR="../"
 
-VIDEO_DIR =ROOT_DIR+ "/Boggle-Videos/Boggle5x5/input/"
+#https://www.tensorflow.org/tutorials/keras/classification
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import datasets, layers, models
+print(tf.__version__)
 
-IMG_DIR = ROOT_DIR+'/cascademan/categories/5x5/images/'
+MODEL_FILE="/srv/boggle/model.h5"
+IMG_DIM = 30
+class_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+L = len(class_names)
+model = tf.keras.models.load_model(MODEL_FILE)
 
-#LETTER_OUT_DIR = ROOT_DIR+"/Letters/"
-LETTER_OUT_DIR = "/home/johanv/Downloads/Letters/"
+
 
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
@@ -22,18 +27,11 @@ YELLOW = (0, 255, 255)
 CONTOUR_THICKNESS = 2
 MAX_DISP_DIM = 500
 
-VIDEO_INPUT = ROOT_DIR+"/Boggle-Videos/Boggle5x5/edited/speedup.mp4"
-#VIDEO_INPUT = ROOT_DIR+"/Boggle-Videos/Boggle5x5/BoggleClip009.mp4"
-VIDEO_OUT_DIR = ROOT_DIR+"/Boggle-Videos/Boggle5x5/output/"
-VIDEO_ENCODER = "H264"
-VIDEO_FPS = 30
-
 #a generic error
 class BoggleError(Exception):
     def __init__(self, arg):
         self.strerror = arg
         self.args = {arg}
-
 
 def four_point_transform(image, pts, size):
     w = size
@@ -285,45 +283,6 @@ def drawLinesAndPoints(image, lines, points):
     for point in points:
         cv2.circle(image, point, 4, BLUE, 3)
 
-
-def contourPlot(xs, xs2, angles, anglesAvg, diffs, diffs2, gapsStart, gapsStartY, gapsEnd, gapsEndY2, normalPlots):
-    fig = plt.figure(figsize=(8,10))
-    ax1 = fig.add_subplot(111)
-
-    # ax1.scatter(xs, dists, s=10, c='b', marker="s", label="dists")
-    ax1.scatter(xs, angles, s=10, c='r', marker="o", label="angles")
-    ax1.scatter(xs, anglesAvg, s=10, c='b', marker="o", label="anglesAvg")
-    ax1.scatter(xs, diffs, s=10, c='g', marker="o", label="diffs")
-    ax1.scatter(xs2, diffs2, s=10, c='m', marker="s", label="diffs2")
-    ax1.scatter(gapsStart, gapsStartY, s=10, c='c', marker="o", label="gapsStart")
-    if gapsEndY2 is not None:
-        ax1.scatter(gapsEnd, gapsEndY2, s=10, c='y', marker="o", label="gapsEnd")
-    plt.legend(loc='best')
-    if normalPlots:
-        plt.show(block=False)
-        return None
-    else:
-        return plotToImg()
-
-def waitForKey():
-    while True:
-        key = cv2.waitKey(0)
-        print("key", key)
-        if key == 27:  # esc
-            cv2.destroyAllWindows()
-            quit()
-        if key == ord(" ") or key == ord("q"):
-            break
-    cv2.destroyAllWindows()
-    plt.close('all')
-
-def waitForConsoleEnter():
-    print("=== hit enter to continue ===")
-    input()
-    print("=== continuing ===")
-    cv2.destroyAllWindows()
-    plt.close('all')
-
 #https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
 #window: np.ones (flat), np.hanning, np.hamming, np.bartlett, np.blackman
 def smooth(x, window_len=11, window=np.hanning):
@@ -410,21 +369,6 @@ def findRowsOrCols(img, doCols, smoothFactor, ax):
     top_6_dips_scaled = [np.clip(0, p-smoothFactor, len(imgSum)-1) for p in top_6_dips]
     return top_6_dips_scaled
 
-def plotToImg():
-    #https://stackoverflow.com/questions/5314707/matplotlib-store-image-in-variable
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    plt.close()
-    buf.seek(0)
-    
-    #https://stackoverflow.com/questions/11552926/how-to-read-raw-png-from-an-array-in-python-opencv
-    file_bytes = np.asarray(bytearray(buf.read()), dtype=np.uint8)
-    img_data_ndarray = cv2.imdecode(file_bytes, cv2.IMREAD_UNCHANGED)
-    #img_data_cvmat = cv.fromarray(img_data_ndarray) #  convert to old cvmat if needed
-
-    img_rgb = cv2.cvtColor(img_data_ndarray, cv2.COLOR_RGBA2RGB)
-    return img_rgb
-
 
 def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")):
     resultImages = {}
@@ -452,7 +396,10 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     maskblur = cv2.blur(mask, blurAmount)
     # maskblur = cv2.threshold(maskblur, 80, 255, cv2.THRESH_BINARY_INV)
     maskblur = cv2.inRange(maskblur, (blurThreshold,), (255,))
-    contourimg, contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
+    
+    #API CHANGE: findContours no longer returns a modified image
+    #contourimg, contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
+    contours, hierarchy = cv2.findContours(maskblur, cv2.RETR_LIST, contourApprox)
     # print(hierarchy) #TODO
     
     bestCtr = findBestCtr(contours)
@@ -677,153 +624,57 @@ def findBoggleBoard(image, normalPlots=True, harshErrors=False, generate=("debug
     
     return resultImages, letterImgs
 
-def findAndShowBoggleBoard(imgDir, imgFilename):
-    imgPath = imgDir + "/" + imgFilename
 
-    #if True:
-    try:
-        print(imgPath)
-        image = cv2.imread(imgPath)
-        generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
-        #generate = ("dice")
-        #normalPlots = False
-        normalPlots = True
-        #harshErrors = False
-        harshErrors = True
-        imgs, letterImgs = findBoggleBoard(image, normalPlots, harshErrors, generate)
-        for title, img in imgs.items():
-            #print("title, img:", title, img)
-            #cv2.imshow(title, img)
-            imshow_fit(title, img)
-        if len(imgs) > 0:
-            waitForKey()
-        else:
-            waitForConsoleEnter()
-    except Exception as e:
-        #print(str(e))
-        print(traceback.format_exc())
-        waitForConsoleEnter()
-
-
-def processVideo(videoDir, videoFile):
-    vid = cv2.VideoCapture(videoDir + "/" + videoFile)
-    if (vid.isOpened() == False):
-        print("Error opening video stream or file")
-    ret, frame = vid.read()
-    height, width, _ = frame.shape
-    resolution = (width, height)
-    print("frame size: ", width, "x", height)
+def processImage(filepath):
+    image = cv2.imread(filepath)
+    _, letters5x5grid = findBoggleBoard(image, normalPlots=False, harshErrors=True, generate=())
     
-    letterOutDir = LETTER_OUT_DIR + "/" + videoFile
-    try:
-        os.mkdir(letterOutDir)
-    except FileExistsError:
-        pass
-    letterImgNums = []
-    letterOutDirs = []
-    for x in range(25):
-        dirName = letterOutDir + "/" + str(x).zfill(2)
-        letterOutDirs.append(dirName)
-        try:
-            os.mkdir(dirName)
-        except FileExistsError:
-            pass
-        letterImgNums.append(0)
-    
-    #generate = ("warpedimage", "debugimage", "debugmask")
-    #generate = ("debugimage", "debugmask", "contourPlotImg", "warpedimage", "imgSumPlotImg", "diceRaw", "dice")
-    generate = ()
-    
-    videoOuts = {}
-    errors = {}
-    frameNum = 1
-    while (vid.isOpened()):
-        # Capture frame-by-frame
-        ret, frame = vid.read()
-        # #pVid=[pVid,frame]
-        if ret == True:
-            print("FRAME #", frameNum)
-            # Display the resulting frame
-            # cv2.imshow('Frame', frame)
-            try:
-                imgs, letterImgs = findBoggleBoard(frame, normalPlots=False, harshErrors=True, generate=generate)
-                
-                i = 0
-                for row in letterImgs:
-                    for letterImg in row:
-                        filename = str(letterImgNums[i]).zfill(9) + ".png"
-                        cv2.imwrite(letterOutDirs[i] + "/" + filename, letterImg)
-                        letterImgNums[i] += 1
-                        i += 1
-                
-                #draw the windows
-                for title, img in imgs.items():
-                    imshow_fit(title, img)
-                    #print(title, img.shape)
-                    if not title in videoOuts:
-                        filename = VIDEO_OUT_DIR + videoFile + "_" + title + ".mp4"
-                        h = img.shape[0]
-                        w = img.shape[1]
-                        videoOuts[title] = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*VIDEO_ENCODER), VIDEO_FPS, (w, h))
-                    videoOuts[title].write(img)
-            except Exception as e:
-                print("DROP FRAME #", frameNum)
-                #error = str(e)
-                error = traceback.format_exc()
-                print(error)
-                errors[frameNum] = error
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
+    lettersGuessed = ""
+    confidence = []
+    num_rows = 5
+    num_cols = 5
+    num_images = num_rows*num_cols
+    for row in range(num_rows):
+        for col in range(num_cols):
+            letterImg = letters5x5grid[row][col]
+            letterImg = letterImg / 255
+#             print(letterImg.shape)
+            letterImg = (np.expand_dims(letterImg,0))
+            letterImg = (np.expand_dims(letterImg,axis=3))
+#             print(letterImg.shape)
+            pred = model.predict(letterImg)[0]
+            letter = class_names[np.argmax(pred)]
+            lettersGuessed += letter
+            confidence.append(np.max(pred))
+    return lettersGuessed, confidence
 
-        # Break the loop
-        else:
-            break
-        frameNum += 1
+"""
+# letters5x5gridLabelsStr = "IZEIMFLTYTOSEINHETNORRISU" #00162
+# letters5x5gridLabelsStr = "DONLIEEIIESAPYWTAAKLTINRE" #00164
+# letters5x5gridLabelsStr = "RAOCODSEERGAPEWORXRHELWNT" #00165
+# letters5x5gridLabelsStr = "RONLICTSSDNMPPNUAEQIHINRM" #00170
+letters5x5gridLabelsStr = "VANUIRAUHESKEITTDPRCGOUCA" #00171, 00160
+# letters5x5gridLabelsStr = "IXESMFLEYTOSEENOETNRRRIWM" #00172, 00161
 
-    # When everything done, release the video capture object
-    print("VIDEO DONE")
-    vid.release()
+#process 1 image
+IMAGE_FILE = '/home/johanv/nextcloud/projects/boggle2.0/cascademan/categories/5x5/images/00160.jpg'
+lettersGuessed, confidence = processImage(IMAGE_FILE)
 
-    # Closes all the frames
-    cv2.destroyAllWindows()
-    json.dump(errors, open(VIDEO_OUT_DIR+videoFile+'.json', 'w'), indent=2)
+right = "".join([str(int(a == b)) for a,b in zip(lettersGuessed, letters5x5gridLabelsStr)])
 
+confidence_right = []
+confidence_wrong = []
 
-def processImages():
-    # problems = ["00030.jpg", "00012.jpg"]
-    problems = ["00177.jpg", "00176.jpg", "00174.jpg", "00169.jpg", "00167.jpg", "00166.jpg", "00153.jpg"]
-    #for img in problems:
-        #findAndShowBoggleBoard(IMG_DIR, img)
+for i, c in enumerate(confidence):
+    if right[i] == "1":
+        confidence_right.append(c)
+    else:
+        confidence_wrong.append(c)
 
-    #findAndShowBoggleBoard(IMG_DIR, "00168.jpg")
-    #findAndShowBoggleBoard(IMG_DIR, "00173.jpg")
-    #findAndShowBoggleBoard(IMG_DIR, "00161.jpg")
-    
-    #not enough grid lines (to test error handling):
-    #findAndShowBoggleBoard(IMG_DIR, "00157.jpg")
-    #findAndShowBoggleBoard(IMG_DIR, "00156.jpg")
-
-
-    images = os.listdir(IMG_DIR)
-    images.sort()
-    images.reverse()
-    print(images)
-    for img in images:
-        if not img in problems:
-            findAndShowBoggleBoard(IMG_DIR, img)
-
-def processVideos():
-    videos = os.listdir(VIDEO_DIR)
-    videos.sort()
-    #videos.reverse()
-    allStartTime = time.time()
-    for vid in videos:
-        startTime = time.time()
-        print("starting video:", vid)
-        processVideo(VIDEO_DIR, vid)
-        print("done with video:", vid, " time:", time.time() - startTime)
-    print("all videos time: ", time.time() - allStartTime)
-
-if __name__ == "__main__":
-    processVideos()
+print("guess: " + lettersGuessed)
+print("real:  " + letters5x5gridLabelsStr)
+print("right: " + right)
+# print("confidence:", confidence)
+# print("confidence_right:", confidence_right)
+# print("confidence_wrong:", confidence_wrong)
+"""

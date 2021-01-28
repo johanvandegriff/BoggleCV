@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import cv2, os, json
 import numpy as np
 from progress.bar import Bar
