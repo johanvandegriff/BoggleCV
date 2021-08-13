@@ -1,7 +1,13 @@
 # BoggleCV
 Using OpenCV and Tensorflow to identify a Boggle board in an image and decode what letters are on the board.
 
-## Example
+## Try it!
+BoggleCV is deployed on my online boggle site, [try it here](https://games.johanv.xyz/boggle?username=guest&page=upload)! You can take a picture of a boggle board with your phone, or upload an image.
+
+## Demo Video
+[bogglecv-demo.mp4](bogglecv-demo.mp4)
+
+## Explanation
 Here are the various stages of the computer vision and machine learning pipeline, with a sample image.
 
 1. An HSV threshold is used to find all the blue pixels, and create a mask.
